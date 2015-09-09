@@ -1,0 +1,65 @@
+---
+# This role contains common plays that will run on all nodes.
+
+- name: Install python bindings for SE Linux
+  yum: name={{ item }} state=present
+  with_items:
+   - libselinux-python
+   - libsemanage-python
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Configure yum proxy
+  template: src=yum.conf.j2 dest=/etc/yum.conf
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Create the repository in163 
+  copy: src=CentOS-Base-163.repo dest=/etc/yum.repos.d/CentOS-Base-163.repo
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Create the repository in163  GPG key
+  copy: src=RPM-GPG-KEY-CentOS-6 dest=/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+#- name: Create the repository for EPEL
+#  copy: src=epel.repo dest=/etc/yum.repos.d/epel.repo
+#  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+#
+#- name: Create the GPG key for EPEL
+#  copy: src=RPM-GPG-KEY-EPEL-6 dest=/etc/pki/rpm-gpg
+#  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Install ntp 
+  yum: name=ntp state=present
+  tags: ntp
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Configure ntp file
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  tags: ntp
+  notify: restart ntp
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Start the ntp service
+  service: name=ntpd state=started enabled=yes
+  tags: ntp
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: insert iptables template
+  template: src=iptables.j2 dest=/etc/sysconfig/iptables
+  notify: restart iptables
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: install zabbix release rpm
+  shell: rpm -q zabbix-release || yum  -y install http://repo.zabbix.com/zabbix/2.2/rhel/6/x86_64/zabbix-release-2.2-1.el6.noarch.rpm
+  ignore_errors: True
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: Install zabbix agent
+  yum: name=zabbix-agent state=present
+  tags: zabbix-agent
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6
+
+- name: insert zabbix agent template
+  template: src=zabbix_agentd.conf.j2 dest=/etc/zabbix/zabbix_agentd.conf
+  notify: restart zabbix-agent
+  when: ansible_os_family == "RedHat" and ansible_lsb.major_release|int == 6

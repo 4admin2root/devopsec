@@ -1,0 +1,6 @@
+---
+# Variables listed here are applicable to all host groups
+
+ntpserver: 10.2.2.1
+zabbixserver: 10.2.2.1
+http_proxy: http://10.2.2.1:3128
