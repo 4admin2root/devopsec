@@ -1,5 +1,7 @@
 1 check yum repo
-	/etc/yum.repos.d/CentOS-Base.repo must with [extras]
+####
+#cat /etc/yum.repos.d/CentOS-Base.repo must with [extras]
+
 [extras]
 name=CentOS-$releasever - Extras
 #mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras&infra=$infra
@@ -8,8 +10,10 @@ gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 
 2 install etcd
+####
 	yum -y install etcd
 3 install kubernetes
+####
 	yum install kubernetes -y
 
 4 modify yourself kubernetes config files , you can check the directory 'conf' for reference
