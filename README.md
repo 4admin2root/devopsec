@@ -1,4 +1,4 @@
-[devopssec](https://github.com/4admin2root/devopssec/) —
+[devopssec](https://github.com/4admin2root/devopssec/)
 ==================================================
 
 DEV
@@ -22,7 +22,7 @@ OPS
 SEC
 --------------------------------------
 - XXXX
-'''bash
+```bash
 git clone 
-'''
+```
 
