@@ -16,3 +16,15 @@
 [submodule "LANGUAGE/python/my_tcpconn"]
 	path = LANGUAGE/python/my_tcpconn
 	url = https://github.com/4admin2root/my_tcpconn
+[submodule "CI/travis/myhomework"]
+	path = CI/travis/myhomework
+	url = https://github.com/4admin2root/myhomework
+[submodule "BUILD/maven/myhomework"]
+	path = BUILD/maven/myhomework
+	url = https://github.com/4admin2root/myhomework
+[submodule "Orchestration/kubernetes/docker-library"]
+	path = Orchestration/kubernetes/docker-library
+	url = https://github.com/4admin2root/docker-library
+[submodule "LANGUAGE/shell/funny"]
+	path = LANGUAGE/shell/funny
+	url = https://github.com/4admin2root/funny
