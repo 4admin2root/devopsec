@@ -10,3 +10,9 @@
 [submodule "Orchestration/kubernetes/myk8s"]
 	path = Orchestration/kubernetes/myk8s
 	url = https://github.com/4admin2root/myk8s
+[submodule "LANGUAGE/java/spring-cloud-helloworld"]
+	path = LANGUAGE/java/spring-cloud-helloworld
+	url = https://github.com/4admin2root/spring-cloud-helloworld
+[submodule "LANGUAGE/python/my_tcpconn"]
+	path = LANGUAGE/python/my_tcpconn
+	url = https://github.com/4admin2root/my_tcpconn
