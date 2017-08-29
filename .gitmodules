@@ -1,0 +1,12 @@
+[submodule "CD/ansible/ansible-kubeadm"]
+	path = CD/ansible/ansible-kubeadm
+	url = https://github.com/4admin2root/ansible-kubeadm
+[submodule "Orchestration/kubernetes/ansible-kubeadm"]
+	path = Orchestration/kubernetes/ansible-kubeadm
+	url = https://github.com/4admin2root/ansible-kubeadm
+[submodule "Orchestration/vagrant/myVagrant"]
+	path = Orchestration/vagrant/myVagrant
+	url = https://github.com/4admin2root/myVagrant
+[submodule "Orchestration/kubernetes/myk8s"]
+	path = Orchestration/kubernetes/myk8s
+	url = https://github.com/4admin2root/myk8s
