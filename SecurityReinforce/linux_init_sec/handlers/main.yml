@@ -1,0 +1,3 @@
+- name: restart auditd
+  #service: name=auditd state=restarted
+  shell: sudo service auditd restart

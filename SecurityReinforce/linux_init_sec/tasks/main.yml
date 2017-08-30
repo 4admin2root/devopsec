@@ -1,0 +1,246 @@
+---
+#########################################################################
+# tested on centos 7
+# 2016-11-19
+# created by : lvzhijun
+# others :
+########################################################################
+#检查并进行安全更新
+- name: check and update security packages
+  shell: yum check-update --security;yum update --security
+#检查audit软件包
+- name: check audit package
+  yum: name=audit state=present
+
+- name: check audispd-plugins package
+  yum: name=audispd-plugins state=present
+
+# 开启审计
+- name: copy au-remote.conf
+  template: src=au-remote.conf dest=/etc/audisp/plugins.d/au-remote.conf owner=root group=root mode=0640
+
+- name: copy audisp-remote.conf
+  template: src=audisp-remote.conf dest=/etc/audisp/audisp-remote.conf owner=root group=root mode=0640
+
+- name: copy audit.rules
+  copy: src=audit.rules dest=/etc/audit/rules.d/audit.rules owner=root group=root mode=0640
+
+- name: copy auditd.conf
+  template: src=auditd.conf dest=/etc/audit/auditd.conf owner=root group=root mode=0640
+  notify: restart auditd
+  tags: audit
+# 密码策略
+- name: overwrite login.defs
+  template: src=login.defs dest=/etc/login.defs owner=root group=root mode=0644
+
+- name: change pwquality.conf 
+  template: src=pwquality.conf dest=/etc/security/pwquality.conf owner=root group=root mode=0644
+# 账户锁定，root除外
+#  pam_faillock 锁定登录失败用户,待测试===========================
+- name: set account policy:system-auth
+  copy: src=system-auth  dest=/etc/pam.d/system-auth owner=root group=root mode=0640
+- name: set account policy:password-auth
+  copy: src=password-auth  dest=/etc/pam.d/password-auth owner=root group=root mode=0640
+# 修改root用户密码有效期为90天，禁止rootssh登录，密码修改由堡垒机触发,待定==========================
+#- name: change  root password expires 
+#  shell: chage -M 90 root
+
+# 限制用户root使用ssh
+#- name: change ssh config :PermitRootLogin no
+#  shell: echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+
+# 清除xzx用户密码 
+- name: check  user xzx with password and then delete password
+  shell: bash -c "[ `awk -F ':' '{print $1,$2}' /etc/shadow |grep xzx |wc -L` -gt 80 ] && sed -i '/^xzx:/d' /etc/shadow";echo 'xzx:!!:17000:0:99999:7:::' >> /etc/shadow
+  when: ansible_os_family == "RedHat" #and ansible_distribution_major_version|int == 7
+  tags: test
+  ignore_errors: true
+# 检查可登陆用户
+- name: check users which can login
+  shell: grep -v nologin /etc/passwd |egrep '/bin/bash|/bin/sh|/bin/ksh' |awk -F ':' '{print $1}'
+  register: users
+  tags: users
+
+- name: append result log
+  shell: echo -e '<p style="color:red">users(can login with shell):\n {{users.stdout}}' >> /tmp/`hostname`_`date +%Y%m%d`.log
+  tags: users
+
+- name: print users above
+  debug: var=users.stdout
+  tags: users
+# 检查监听端口，关闭不必要服务,cups,sendmail,postfix
+- name: disable cups,sendmail,postfix
+  service: name={{item}} state=stopped enabled=no
+  with_items:
+        - cups
+        - sendmail
+        - postfix
+  ignore_errors: true
+# 打印监听端口
+- name: list listening ports
+  shell: netstat -ntpl >> /tmp/`hostname`_`date +%Y%m%d`.log
+# firewall
+#- name: firewall
+#  firewalld: port=22/tcp permanent=true state=enabled
+#  psacct
+- name: psacct
+  yum: name=psacct state=present
+  tags: ps
+- name: psacct service 
+  service: name=psacct state=restarted enabled=yes
+  tags: ps
+# configure mailx
+- name: install mailx
+  yum: name=mailx state=present
+  tags: mailx
+
+- name: copy mailx cony
+  template: src=mail.rc dest=/etc/mail.rc owner=root group=root mode=0640
+  tags: mailx
+
+- name: create nss dir
+  file: path=/root/nss state=directory mode=0755
+  tags: mailx
+
+- name: copy db files 
+  copy: src={{item}} dest=/root/nss/ owner=root group=root mode=0700
+  with_items:
+        - key3.db
+        - cert8.db
+        - secmod.db
+  tags: mailx
+
+
+# do lynis check
+- name: install  lynis
+  yum: name={{item}} state=present
+  with_items:
+        - lynis-2.3.2
+        - yum-utils
+        - arpwatch
+  tags: lynis
+
+- name : run lynis
+  shell: lynis audit system -Q
+  tags: lynis
+
+# do openscap check
+- name: openscap
+  yum: name={{item}}  state=present
+  with_items:
+        - openscap-utils
+        - scap-security-guide
+  tags: oscap
+
+- name: run openscap1
+  shell: oscap oval eval --results /tmp/scan-oval-results.xml /usr/share/xml/scap/ssg/content/ssg-{{ansible_distribution|lower}}{{ansible_distribution_major_version}}-ds.xml
+  #when: ansible_os_family == "RedHat" #and ansible_distribution_major_version|int == 7
+  tags: oscap
+
+- name: run openscap2
+  shell: oscap oval generate report /tmp/scan-oval-results.xml > /tmp/`hostname`_`date +%Y%m%d`.html
+  tags: oscap
+
+- name: append log above
+  shell: cat /tmp/`hostname`_`date +%Y%m%d`.log |sed 's/$/<br>/' >> /tmp/`hostname`_`date +%Y%m%d`.html;echo "</p>" >> /tmp/`hostname`_`date +%Y%m%d`.html
+  tags: oscap
+
+- name: append lynis log
+  shell: egrep 'Warning|Suggestion' /var/log/lynis.log | sed 's/$/<br>/' >> /tmp/`hostname`_`date +%Y%m%d`.html
+  tags: lynis
+  ignore_errors: true
+
+- name: upload result file to file server
+  shell: F=`hostname`_`date +%Y%m%d`.html;curl -s -F "file=@/tmp/$F"   http://10.9.100.3/uploadfile?dir="/init_sec/" 
+  tags: oscap
+  ignore_errors: true
+#
+- name: install rkhunter
+  yum: name=rkhunter state=present
+  tags: rk
+
+- name: update rkhunter
+  shell: rkhunter --update ; rkhunter --propupd
+  tags: rk
+
+- name: copy rkhunter config
+  copy: src=rkhunter dest=/etc/sysconfig/rkhunter owner=root group=root mode=0640
+  tags: rk
+
+- name: install clamav clamav-update
+  yum: name={{item}} state=present
+  with_items: 
+        - clamav
+        - clamav-update
+  tags: av
+
+- name: config av
+  shell: sed -i -e "s/^Example/#Example/" /etc/freshclam.conf
+  tags: av
+
+- name: fresh av
+  shell: nohup freshclam &
+  tags: av
+
+- name: create av dir
+  file: path=/usr/local/av state=directory mode=0755
+  tags: av
+
+- name: copy av script
+  copy: src=clamscan.sh dest=/usr/local/av/clamscan.sh owner=root group=root mode=0700
+  tags: av
+
+#- name: cron av update
+#  cron: name="av up" minute="0" hour="4" day="2" job="/bin/freshclam"
+#  tags: av
+
+- name: cron av
+  cron: name="av" minute="0" hour="7" job="/usr/local/av/clamscan.sh"
+  tags: av
+
+# do aide check
+- name: disable prelink
+  shell: sed -i 's/PRELINKING=yes/PRELINKING=no/g' /etc/sysconfig/prelink;/usr/sbin/prelink -ua
+  tags: prelink
+  ignore_errors: true
+
+- name: install aide
+  yum: name=aide state=present
+  tags: aide
+
+- name: copy aide conf
+  template: src=aide.conf dest=/etc/aide.conf owner=root group=root mode=0600
+  tags: 
+        - aide
+        - aideconf
+
+- name: create aide dir
+  file: path=/usr/local/aide state=directory mode=0755
+  tags: aide
+
+- name: copy aide script 
+  copy: src=aide.sh dest=/usr/local/aide/aide.sh owner=root group=root mode=0700
+  tags: aide
+
+- name: cron aide
+  cron: name="aide" minute="30" hour="7" job="/usr/local/aide/aide.sh"
+  tags: aide
+  #mv -f /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz; /sbin/aide -u > /var/lib/aide/`hostname`_`date +%Y%m%d`.log
+- name: init aide
+  shell: aide -i;mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+  tags: 
+        - aide
+        - aideconf
+  ignore_errors: true
+
+- name: upload result file to file server
+  shell: echo http://10.9.100.3/upload/init_sec/`hostname`_`date +%Y%m%d`.html
+  register: url
+  ignore_errors: true
+  tags: url
+- debug: msg="please browse the URL:{{url.stdout}} to get scan result"
+  ignore_errors: true
+  tags: url
+
+# set bash history size
+#

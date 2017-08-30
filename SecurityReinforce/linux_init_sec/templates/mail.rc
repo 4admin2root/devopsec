@@ -1,0 +1,26 @@
+set hold
+set append
+set ask
+set crt
+set dot
+set keep
+set emptybox
+set indentprefix="> "
+set quote
+set sendcharsets=iso-8859-1,utf-8
+set showname
+set showto
+set newmail=nopoll
+set autocollapse
+set markanswered
+ignore received in-reply-to message-id references
+ignore mime-version content-transfer-encoding
+fwdretain subject date from to
+set bsdcompat
+set from="alert@synjones.net"
+set smtp=smtps://smtp.exmail.qq.com:465
+set smtp-auth-user=alert@synjones.net
+set smtp-auth-password=Admin
+set smtp-auth=login
+set nss-config-dir=/root/nss
+set ssl-verify=ignore
