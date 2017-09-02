@@ -1,6 +1,6 @@
 node('zbx01') {
     stage ('docker pull image'){
-      docker.image('4admin2root/maven:3.5').inside {
+      docker.image('4admin2root/maven:3.5').inside("-v $HOME/.m2:/root/.m2") {
         stage ('scm checkout'){
             git url: 'https://github.com/4admin2root/myhomework.git'
         }
